@@ -3,11 +3,13 @@ import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import DocumentList from '@/components/vehicles/DocumentList'
+import ShareManager from '@/components/vehicles/ShareManager'
+import DeleteVehicleButton from '@/components/vehicles/DeleteVehicleButton'
 import Badge from '@/components/ui/Badge'
 import VehicleTypeIcon from '@/components/vehicles/VehicleTypeIcon'
 import QRDownloadButton from '@/components/qr/QRDownloadButton'
 import type { VehicleType } from '@prisma/client'
-import type { DocumentResponse } from '@/types'
+import type { AccessGrantResponse, AccessLogResponse, DocumentResponse } from '@/types'
 
 type Props = { params: Promise<{ vehicleId: string }> }
 
@@ -47,6 +49,25 @@ export default async function VehicleManagePage({ params }: Props) {
           uploadedAt: true,
         },
       },
+      accessGrants: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          createdAt: true,
+          grantedTo: {
+            select: { id: true, name: true, email: true, image: true },
+          },
+        },
+      },
+      accessLogs: {
+        orderBy: { scannedAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          scannedAt: true,
+          scannedBy: { select: { id: true, name: true, email: true } },
+        },
+      },
     },
   })
 
@@ -79,6 +100,18 @@ export default async function VehicleManagePage({ params }: Props) {
     mimeType: d.mimeType,
     sizeBytes: d.sizeBytes,
     uploadedAt: d.uploadedAt.toISOString(),
+  }))
+
+  const initialGrants: AccessGrantResponse[] = vehicle.accessGrants.map((grant) => ({
+    id: grant.id,
+    createdAt: grant.createdAt.toISOString(),
+    grantedTo: grant.grantedTo,
+  }))
+
+  const accessLogs: AccessLogResponse[] = vehicle.accessLogs.map((log) => ({
+    id: log.id,
+    scannedAt: log.scannedAt.toISOString(),
+    scannedBy: log.scannedBy,
   }))
 
   return (
@@ -127,11 +160,35 @@ export default async function VehicleManagePage({ params }: Props) {
         <DocumentList vehicleId={vehicle.id} initialDocuments={initialDocuments} />
       </div>
 
-      {/* ── Sharing — Phase 6 placeholder ─────────────────────────── */}
-      <div className="bg-white rounded-xl border border-dashed border-gray-300 p-6 mb-6 text-center">
-        <p className="text-gray-400 text-sm">
-          Access sharing and scan logs — coming in Phase 6.
-        </p>
+      {/* ── Sharing ───────────────────────────────────────────────── */}
+      <ShareManager vehicleId={vehicle.id} initialGrants={initialGrants} />
+
+      {/* ── Access logs ───────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent QR Scans</h2>
+
+        {accessLogs.length === 0 ? (
+          <p className="text-sm text-gray-500">No scans yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {accessLogs.map((log) => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {log.scannedBy.name ?? 'Unnamed User'}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">{log.scannedBy.email}</p>
+                </div>
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  {new Date(log.scannedAt).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Delete vehicle ─────────────────────────────────────────── */}
@@ -141,13 +198,7 @@ export default async function VehicleManagePage({ params }: Props) {
           Deleting this vehicle will permanently remove all its documents from Google Drive
           and cannot be undone.
         </p>
-        {/* DeleteVehicleButton is a Phase 6 client component */}
-        <button
-          disabled
-          className="bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg opacity-50 cursor-not-allowed"
-        >
-          Delete Vehicle
-        </button>
+        <DeleteVehicleButton vehicleId={vehicle.id} />
       </div>
     </div>
   )
