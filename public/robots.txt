@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+# Block QR scan pages from being indexed — they require login
+Disallow: /v/

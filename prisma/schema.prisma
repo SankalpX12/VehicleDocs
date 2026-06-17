@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+
+model User {
+  id                 String    @id @default(cuid())
+  googleId           String?   @unique
+  email              String    @unique
+  emailVerified      DateTime?          // Required by NextAuth Prisma adapter
+  name               String?
+  image              String?
+  googleAccessToken  String?   @db.Text // Encrypted at rest (AES-256-GCM)
+  googleRefreshToken String?   @db.Text // Encrypted at rest (AES-256-GCM)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  vehicles       Vehicle[]
+  accessGrants   AccessGrant[]  @relation("grantedTo")
+  grantsGiven    AccessGrant[]  @relation("grantedBy")
+  accessLogs     AccessLog[]
+  drivingLicense DrivingLicense?
+
+  // NextAuth required relations
+  accounts Account[]
+  sessions Session[]
+}
+
+// ─── Vehicle ─────────────────────────────────────────────────────────────────
+
+model Vehicle {
+  id            String      @id @default(cuid())
+  ownerId       String
+  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  type          VehicleType
+  nickname      String
+  licensePlate  String
+  driveFolderId String      @db.Text // Google Drive folder ID — server-side only, never sent to client
+  qrCodeUrl     String?              // Public URL of stored QR PNG in Vercel Blob
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents    Document[]
+  accessGrants AccessGrant[]
+  accessLogs   AccessLog[]
+
+  @@index([ownerId])
+}
+
+enum VehicleType {
+  CAR
+  TRUCK
+  BIKE
+}
+
+// ─── Document ────────────────────────────────────────────────────────────────
+
+model Document {
+  id           String  @id @default(cuid())
+  vehicleId    String
+  vehicle      Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  driveFileId  String  @db.Text // Google Drive file ID — server-side only, never sent to client
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  uploadedAt   DateTime @default(now())
+  uploadedById String
+
+  @@index([vehicleId])
+}
+
+// ─── DrivingLicense ──────────────────────────────────────────────────────────
+
+model DrivingLicense {
+  id            String @id @default(cuid())
+  userId        String @unique
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  driveFileId   String @db.Text // Server-side only
+  driveFolderId String @db.Text // Server-side only
+  fileName      String
+  mimeType      String
+  sizeBytes     Int
+  uploadedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── AccessGrant ─────────────────────────────────────────────────────────────
+
+model AccessGrant {
+  id          String  @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  grantedToId String
+  grantedTo   User    @relation("grantedTo", fields: [grantedToId], references: [id], onDelete: Cascade)
+  grantedById String
+  grantedBy   User    @relation("grantedBy", fields: [grantedById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([vehicleId, grantedToId])
+  @@index([vehicleId])
+  @@index([grantedToId])
+}
+
+// ─── AccessLog ────────────────────────────────────────────────────────────────
+
+model AccessLog {
+  id          String  @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  scannedById String
+  scannedBy   User    @relation(fields: [scannedById], references: [id], onDelete: Cascade)
+  scannedAt   DateTime @default(now())
+
+  @@index([vehicleId])
+  @@index([scannedById])
+}
+
+// ─── NextAuth Required Models ────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
