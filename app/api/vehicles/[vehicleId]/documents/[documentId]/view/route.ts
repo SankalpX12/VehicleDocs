@@ -3,8 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { streamFileFromDrive } from '@/lib/drive'
 import { canAccessVehicle } from '@/lib/utils'
-import type { Readable } from 'stream'
-import { ReadableStream as WebReadableStream } from 'stream/web'
+import { Readable } from 'node:stream'
 
 type Params = { params: Promise<{ vehicleId: string; documentId: string }> }
 
@@ -59,9 +58,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
     )
   }
 
-  // Convert Node.js Readable → WHATWG ReadableStream for Next.js Response
-  const webStream = nodeStream as unknown as ReadableStream
-  return new NextResponse(webStream as WebReadableStream, {
+  const chunks: Buffer[] = []
+  for await (const chunk of nodeStream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  const fileBuffer = Buffer.concat(chunks)
+
+  return new NextResponse(fileBuffer, {
     headers: {
       'Content-Type': document.mimeType,
       'Content-Disposition': `inline; filename="${encodeURIComponent(document.fileName)}"`,

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { streamFileFromDrive } from '@/lib/drive'
-import type { Readable } from 'stream'
-import { ReadableStream as WebReadableStream } from 'stream/web'
+import { Readable } from 'node:stream'
 
 // ─── GET /api/license/download ────────────────────────────────────────────────
 // Same as /api/license/view but forces a file download.
@@ -42,8 +41,13 @@ export async function GET() {
     )
   }
 
-  const webStream = nodeStream as unknown as ReadableStream
-  return new NextResponse(webStream as WebReadableStream, {
+  const chunks: Buffer[] = []
+  for await (const chunk of nodeStream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  const fileBuffer = Buffer.concat(chunks)
+
+  return new NextResponse(fileBuffer, {
     headers: {
       'Content-Type': license.mimeType,
       'Content-Disposition': `attachment; filename="${encodeURIComponent(license.fileName)}"`,

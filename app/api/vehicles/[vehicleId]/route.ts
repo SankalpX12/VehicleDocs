@@ -1,22 +1,25 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteFileFromDrive } from '@/lib/drive'
+import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 interface Params {
-  params: { vehicleId: string }
+  params: Promise<{ vehicleId: string }>
 }
 
 // ─── GET /api/vehicles/[vehicleId] ────────────────────────────────────────────
 
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(_req: NextRequest, { params }: Params) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const { vehicleId } = await params
+
   const vehicle = await prisma.vehicle.findUnique({
-    where: { id: params.vehicleId },
+    where: { id: vehicleId },
     select: {
       id: true,
       type: true,
@@ -101,14 +104,16 @@ export async function GET(_req: Request, { params }: Params) {
 
 // ─── DELETE /api/vehicles/[vehicleId] ─────────────────────────────────────────
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(_req: NextRequest, { params }: Params) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const { vehicleId } = await params
+
   const vehicle = await prisma.vehicle.findUnique({
-    where: { id: params.vehicleId },
+    where: { id: vehicleId },
     select: {
       ownerId: true,
       driveFolderId: true,
@@ -141,7 +146,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   }
 
   // Prisma cascade deletes documents, access grants, and logs automatically
-  await prisma.vehicle.delete({ where: { id: params.vehicleId } })
+  await prisma.vehicle.delete({ where: { id: vehicleId } })
 
   return new NextResponse(null, { status: 204 })
 }

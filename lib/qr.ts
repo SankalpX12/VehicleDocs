@@ -20,7 +20,6 @@ export async function generateVehicleQR(
 
   const buffer = await QRCode.toBuffer(url, {
     errorCorrectionLevel: 'H',
-    // @ts-expect-error — qrcode types don't expose 'png' but it's valid
     type: 'png',
     width: 400,
     margin: 2,
