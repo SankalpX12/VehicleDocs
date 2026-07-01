@@ -6,15 +6,16 @@ import SignInButton from '@/components/auth/SignInButton'
 export const metadata: Metadata = { title: 'Sign In' }
 
 interface Props {
-  searchParams: { callbackUrl?: string }
+  searchParams: Promise<{ callbackUrl?: string }>
 }
 
 export default async function LoginPage({ searchParams }: Props) {
   const session = await auth()
+  const params = await searchParams
 
   // Already authenticated — go to callbackUrl or dashboard
   if (session) {
-    redirect(searchParams.callbackUrl ?? '/dashboard')
+    redirect(params.callbackUrl ?? '/dashboard')
   }
 
   return (
@@ -36,7 +37,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
         <hr className="w-full border-gray-100" />
 
-        <SignInButton callbackUrl={searchParams.callbackUrl} />
+        <SignInButton callbackUrl={params.callbackUrl} />
 
         <p className="text-xs text-gray-400 text-center leading-relaxed">
           By continuing, you allow VehicleDocs to create private folders in
