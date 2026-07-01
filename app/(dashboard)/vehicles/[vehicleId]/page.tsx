@@ -8,6 +8,7 @@ import DeleteVehicleButton from '@/components/vehicles/DeleteVehicleButton'
 import Badge from '@/components/ui/Badge'
 import VehicleTypeIcon from '@/components/vehicles/VehicleTypeIcon'
 import QRDownloadButton from '@/components/qr/QRDownloadButton'
+import QRGenerateButton from '@/components/qr/QRGenerateButton'
 import type { VehicleType } from '@prisma/client'
 import type { AccessGrantResponse, AccessLogResponse, DocumentResponse } from '@/types'
 
@@ -132,26 +133,43 @@ export default async function VehicleManagePage({ params }: Props) {
         </div>
 
         {/* QR code section */}
-        {vehicle.qrCodeUrl && (
-          <div className="mt-5 pt-5 border-t border-gray-100 flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={vehicle.qrCodeUrl}
-              alt="Vehicle QR code"
-              className="w-20 h-20 rounded border border-gray-200"
-            />
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                Share this QR code so others can view the documents for this vehicle.
-              </p>
-              <QRDownloadButton
-                vehicleId={vehicle.id}
-                nickname={vehicle.nickname}
-                plate={vehicle.licensePlate}
+        <div className="mt-5 pt-5 border-t border-gray-100 flex items-center gap-4">
+          {vehicle.qrCodeUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={vehicle.qrCodeUrl}
+                alt="Vehicle QR code"
+                className="w-20 h-20 rounded border border-gray-200"
               />
+            </>
+          ) : (
+            <div className="w-20 h-20 rounded border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs text-center px-2">
+              QR not generated
             </div>
+          )}
+          <div>
+            {vehicle.qrCodeUrl ? (
+              <>
+                <p className="text-sm text-gray-600 mb-2">
+                  Share this QR code so others can view the documents for this vehicle.
+                </p>
+                <QRDownloadButton
+                  vehicleId={vehicle.id}
+                  nickname={vehicle.nickname}
+                  plate={vehicle.licensePlate}
+                />
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-2">
+                  This vehicle does not have a QR code yet.
+                </p>
+                <QRGenerateButton vehicleId={vehicle.id} />
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Documents section ──────────────────────────────────────── */}

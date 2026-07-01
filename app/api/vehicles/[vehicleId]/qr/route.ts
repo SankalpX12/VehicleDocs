@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { generateVehicleQR } from '@/lib/qr'
+import { put } from '@vercel/blob'
 
 type Params = { params: Promise<{ vehicleId: string }> }
 
@@ -58,4 +60,49 @@ export async function GET(_req: NextRequest, { params }: Params) {
       'Cache-Control': 'no-store',
     },
   })
+}
+
+// ─── POST /api/vehicles/[vehicleId]/qr ───────────────────────────────────────
+// Owner-only: generate or regenerate QR and persist qrCodeUrl.
+export async function POST(_req: NextRequest, { params }: Params) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { vehicleId } = await params
+  const userId = session.user.id
+
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { id: true, ownerId: true },
+  })
+
+  if (!vehicle) return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 })
+  if (vehicle.ownerId !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  try {
+    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'localhost:3000'
+    const qrBuffer = await generateVehicleQR(vehicle.id, appDomain)
+    const blob = await put(`qr/${vehicle.id}.png`, qrBuffer, {
+      access: 'public',
+      contentType: 'image/png',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    })
+
+    const updated = await prisma.vehicle.update({
+      where: { id: vehicle.id },
+      data: { qrCodeUrl: blob.url },
+      select: { qrCodeUrl: true },
+    })
+
+    return NextResponse.json({ qrCodeUrl: updated.qrCodeUrl }, { status: 201 })
+  } catch (err) {
+    console.error('[POST /api/vehicles/[vehicleId]/qr] generation failed:', err)
+    return NextResponse.json(
+      { error: 'Failed to generate QR code. Please try again.' },
+      { status: 500 },
+    )
+  }
 }

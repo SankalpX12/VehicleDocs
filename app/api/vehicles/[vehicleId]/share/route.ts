@@ -69,7 +69,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     )
   }
 
-  const email = parsed.data.email.toLowerCase().trim()
+  const email = parsed.data.email.trim()
 
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: vehicleId },
@@ -81,8 +81,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const userToGrant = await prisma.user.findUnique({
-    where: { email },
+  const userToGrant = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: 'insensitive' } },
     select: { id: true, name: true, email: true, image: true },
   })
 

@@ -26,6 +26,7 @@ export default async function VehicleScanPage({ params }: Props) {
       type: true,
       nickname: true,
       licensePlate: true,
+      qrCodeUrl: true,
       ownerId: true,
       owner: { select: { name: true } },
     },
@@ -98,6 +99,17 @@ export default async function VehicleScanPage({ params }: Props) {
             <Badge variant="default">{vehicle.licensePlate}</Badge>
             <Badge variant="blue">{vehicle.type}</Badge>
           </div>
+
+          {vehicle.qrCodeUrl && (
+            <div className="flex justify-center mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={vehicle.qrCodeUrl}
+                alt={`QR code for ${vehicle.nickname}`}
+                className="w-32 h-32 rounded-xl border border-gray-200"
+              />
+            </div>
+          )}
 
           <p className="text-sm text-gray-500">
             Documents owned by {vehicle.owner.name ?? 'Unknown Owner'}

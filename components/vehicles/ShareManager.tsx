@@ -19,6 +19,9 @@ export default function ShareManager({ vehicleId, initialGrants }: Props) {
 
   async function handleShare(e: React.FormEvent) {
     e.preventDefault()
+    const normalizedEmail = email.trim()
+    if (!normalizedEmail) return
+
     setLoading(true)
     setError(null)
 
@@ -26,13 +29,14 @@ export default function ShareManager({ vehicleId, initialGrants }: Props) {
       const res = await fetch(`/api/vehicles/${vehicleId}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       })
 
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        setError(data.error ?? 'Failed to share vehicle. Please try again.')
+        const validationMessage = data.details?.email?.[0]
+        setError(validationMessage ?? data.error ?? 'Failed to share vehicle. Please try again.')
         return
       }
 

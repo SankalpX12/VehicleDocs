@@ -3,6 +3,7 @@ import type { VehicleResponse } from '@/types'
 import VehicleTypeIcon from './VehicleTypeIcon'
 import Badge from '@/components/ui/Badge'
 import QRDownloadButton from '@/components/qr/QRDownloadButton'
+import QRGenerateButton from '@/components/qr/QRGenerateButton'
 import type { VehicleType } from '@prisma/client'
 
 interface Props {
@@ -65,12 +66,27 @@ export default function VehicleCard({ vehicle }: Props) {
         </Link>
 
         {vehicle.qrCodeUrl && (
-          <QRDownloadButton
-            vehicleId={vehicle.id}
-            nickname={vehicle.nickname}
-            plate={vehicle.licensePlate}
-            className="flex-1"
-          />
+          <>
+            <a
+              href={vehicle.qrCodeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-white text-gray-700 border border-gray-300 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              View QR
+            </a>
+
+            <QRDownloadButton
+              vehicleId={vehicle.id}
+              nickname={vehicle.nickname}
+              plate={vehicle.licensePlate}
+              className="flex-1"
+            />
+          </>
+        )}
+
+        {!vehicle.qrCodeUrl && (
+          <QRGenerateButton vehicleId={vehicle.id} className="flex-1" />
         )}
       </div>
     </div>
