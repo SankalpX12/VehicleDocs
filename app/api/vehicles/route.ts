@@ -114,19 +114,25 @@ export async function POST(request: Request) {
   // 4. Generate QR code and upload to Vercel Blob
   let qrCodeUrl: string | null = null
   try {
-    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'localhost:3000'
-    const qrBuffer = await generateVehicleQR(vehicle.id, appDomain)
-    const blob = await put(`qr/${vehicle.id}.png`, qrBuffer, {
-      access: 'public',
-      contentType: 'image/png',
-    })
-    qrCodeUrl = blob.url
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+    if (!token) {
+      console.warn('[POST /api/vehicles] BLOB_READ_WRITE_TOKEN not configured, skipping QR generation')
+    } else {
+      const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'localhost:3000'
+      const qrBuffer = await generateVehicleQR(vehicle.id, appDomain)
+      const blob = await put(`qr/${vehicle.id}.png`, qrBuffer, {
+        access: 'public',
+        contentType: 'image/png',
+        token,
+      })
+      qrCodeUrl = blob.url
 
-    // Persist the QR URL on the vehicle record
-    await prisma.vehicle.update({
-      where: { id: vehicle.id },
-      data: { qrCodeUrl },
-    })
+      // Persist the QR URL on the vehicle record
+      await prisma.vehicle.update({
+        where: { id: vehicle.id },
+        data: { qrCodeUrl },
+      })
+    }
   } catch (err) {
     // QR generation failure is non-fatal — the vehicle is already created.
     // The owner can still manage documents; the QR will just show as unavailable.

@@ -84,11 +84,22 @@ export async function POST(_req: NextRequest, { params }: Params) {
   try {
     const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'localhost:3000'
     const qrBuffer = await generateVehicleQR(vehicle.id, appDomain)
+
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+    if (!token) {
+      console.error('[POST /api/vehicles/[vehicleId]/qr] Missing BLOB_READ_WRITE_TOKEN')
+      return NextResponse.json(
+        { error: 'QR code service is not configured. Please contact support.' },
+        { status: 500 },
+      )
+    }
+
     const blob = await put(`qr/${vehicle.id}.png`, qrBuffer, {
       access: 'public',
       contentType: 'image/png',
       addRandomSuffix: false,
       allowOverwrite: true,
+      token,
     })
 
     const updated = await prisma.vehicle.update({
