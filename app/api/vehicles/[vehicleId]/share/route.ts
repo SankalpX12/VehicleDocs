@@ -31,8 +31,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     },
   })
 
-  if (!vehicle) return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 })
-  if (vehicle.ownerId !== userId) {
+  if (!vehicle || vehicle.ownerId !== userId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -76,8 +75,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     select: { ownerId: true },
   })
 
-  if (!vehicle) return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 })
-  if (vehicle.ownerId !== userId) {
+  if (!vehicle || vehicle.ownerId !== userId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

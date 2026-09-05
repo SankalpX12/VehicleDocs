@@ -67,7 +67,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return new NextResponse(fileBuffer, {
     headers: {
       'Content-Type': document.mimeType,
-      'Content-Disposition': `inline; filename="${encodeURIComponent(document.fileName)}"`,
+      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(document.fileName)}`,
       'Cache-Control': 'no-store',
     },
   })

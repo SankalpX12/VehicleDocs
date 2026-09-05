@@ -135,14 +135,14 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     try {
       await deleteFileFromDrive(session.user.id, doc.driveFileId)
     } catch (err) {
-      console.error(`[DELETE vehicle] Failed to delete Drive file ${doc.driveFileId}:`, err)
+      console.error('[DELETE vehicle] Failed to delete a Drive document file:', err)
     }
   }
 
   try {
     await deleteFileFromDrive(session.user.id, vehicle.driveFolderId)
   } catch (err) {
-    console.error(`[DELETE vehicle] Failed to delete Drive folder ${vehicle.driveFolderId}:`, err)
+    console.error('[DELETE vehicle] Failed to delete the Drive folder:', err)
   }
 
   // Prisma cascade deletes documents, access grants, and logs automatically

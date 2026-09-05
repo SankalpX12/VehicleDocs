@@ -18,8 +18,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     select: { ownerId: true },
   })
 
-  if (!vehicle) return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 })
-  if (vehicle.ownerId !== userId) {
+  if (!vehicle || vehicle.ownerId !== userId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -50,7 +50,7 @@ export async function GET() {
   return new NextResponse(fileBuffer, {
     headers: {
       'Content-Type': license.mimeType,
-      'Content-Disposition': `inline; filename="${encodeURIComponent(license.fileName)}"`,
+      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(license.fileName)}`,
       'Cache-Control': 'no-store',
     },
   })
